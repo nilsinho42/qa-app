@@ -1,33 +1,39 @@
 'use client'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { QAItem, AnswerMode } from '@/lib/types'
 
-export default function QuestionCard({
-  current,
-  seconds,
-  remaining,
-  expired,
-  answerMode,
-  showAnswer,
-  deckRef,
-  onExhausted,
-  setCurrent,
-  setShowAnswer,
-  setRemaining,
-  setExpired,
-}: any) {
+type Props = {
+  questions: QAItem[]
+  answerMode: AnswerMode
+  seconds: number
+  onExhausted: () => void
+}
+
+export default function QuestionCard({ questions, answerMode, seconds, onExhausted }: Props) {
+  const deckRef = useRef<QAItem[]>([])
+  const [current, setCurrent] = useState<QAItem | null>(null)
+  const [showAnswer, setShowAnswer] = useState(answerMode === 'always')
+  const [remaining, setRemaining] = useState<number>(seconds)
+  const [expired, setExpired] = useState<boolean>(false)
+
   useEffect(() => {
-    // reseta timer quando muda de pergunta
+    deckRef.current = shuffle(questions.slice())
+    setCurrent(deckRef.current[0] ?? null)
+  }, [questions])
+
+  useEffect(() => {
+    setShowAnswer(answerMode === 'always')
+  }, [answerMode, current])
+
+  useEffect(() => {
     setRemaining(seconds)
     setExpired(false)
-  }, [current, seconds, setRemaining, setExpired])
+  }, [current, seconds])
 
   useEffect(() => {
-    if (seconds <= 0) return // sem timer
-    if (!current) return
-    if (expired) return
-
+    if (seconds <= 0 || !current || expired) return
     const id = setInterval(() => {
-      setRemaining((r: number) => {
+      setRemaining((r) => {
         if (r <= 1) {
           clearInterval(id)
           setExpired(true)
@@ -36,19 +42,16 @@ export default function QuestionCard({
         return r - 1
       })
     }, 1000)
-
     return () => clearInterval(id)
-  }, [current, seconds, expired, setRemaining, setExpired])
+  }, [current, seconds, expired])
 
   function nextQuestion() {
-    // avança no deck; sem repetição até esgotar
-    deckRef.current.shift()
+    if (deckRef.current.length > 0) deckRef.current.shift()
     if (deckRef.current.length === 0) {
       onExhausted()
       return
     }
     setCurrent(deckRef.current[0])
-    setShowAnswer(answerMode === 'always')
   }
 
   const timerClass = useMemo(() => {
@@ -97,4 +100,12 @@ export default function QuestionCard({
       </div>
     </div>
   )
+}
+
+function shuffle<T>(arr: T[]): T[] {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[arr[i], arr[j]] = [arr[j], arr[i]]
+  }
+  return arr
 }

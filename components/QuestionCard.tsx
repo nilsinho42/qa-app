@@ -36,9 +36,8 @@ setShowAnswer(answerMode === 'always')
 }
 
 const timerClass = useMemo(() => {
-if (seconds <= 0) return 'badge' // timer desligado
 if (expired) return 'badge timer-expired'
-if (remaining <= Math.max(3, Math.ceil(seconds * 0.25))) return 'badge timer-warn'
+if (seconds > 0 && remaining <= 5) return 'badge timer-warn'
 return 'badge timer-ok'
 }, [remaining, seconds, expired])
 
